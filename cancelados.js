@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         SmartBus - Mostrar somente status cancelado
 // @namespace    http://tampermonkey.net/
-// @version      1.0.0
-// @description  Oculta linhas da tabela que não possuem status Cancelado
-// @author       Gilvan
+// @version      1.1.0
+// @description  Oculta linhas da tabela que não possuem status Cancelado somente quando o filtro estiver em CANCELADOS
+// @author       gilmario
 // @match        *://*.smarttravelit.com/*
 // @match        *://prod-guanabara-frontoffice-smartbus.smarttravelit.com/*
 // @grant        none
@@ -20,6 +20,17 @@
       .toUpperCase();
   }
 
+  function filtroEstaEmCancelados() {
+    const selects = document.querySelectorAll('.select2-selection');
+    const selectStatus = selects[10];
+
+    if (!selectStatus) return false;
+
+    const texto = normalizarTexto(selectStatus.innerText || selectStatus.textContent);
+
+    return texto === 'CANCELADOS' || texto.includes('CANCELADOS');
+  }
+
   function encontrarIndiceColunaStatus(tabela) {
     const ths = tabela.querySelectorAll('thead th');
 
@@ -34,7 +45,27 @@
     return -1;
   }
 
+  function mostrarTodasAsLinhas() {
+    const wrappers = document.querySelectorAll('.dataTables_wrapper.no-footer');
+
+    wrappers.forEach(wrapper => {
+      const tabela = wrapper.querySelector('table');
+      if (!tabela) return;
+
+      const linhas = tabela.querySelectorAll('tbody tr');
+
+      linhas.forEach(linha => {
+        linha.style.display = '';
+      });
+    });
+  }
+
   function filtrarSomenteCancelado() {
+    if (!filtroEstaEmCancelados()) {
+      mostrarTodasAsLinhas();
+      return;
+    }
+
     const wrappers = document.querySelectorAll('.dataTables_wrapper.no-footer');
 
     wrappers.forEach(wrapper => {
@@ -51,7 +82,9 @@
 
         if (!colunas[indiceStatus]) return;
 
-        const status = normalizarTexto(colunas[indiceStatus].innerText || colunas[indiceStatus].textContent);
+        const status = normalizarTexto(
+          colunas[indiceStatus].innerText || colunas[indiceStatus].textContent
+        );
 
         if (status.includes('CANCELADO')) {
           linha.style.display = '';
